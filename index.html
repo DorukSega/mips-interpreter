@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIPS Interpreter</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="main.js"></script>
+    <link rel="shortcut icon" href="." type="image/x-icon">
+</head>
+<body>
+    <div id="container">
+        <div id="editor">
+            <div id="controls">
+                <div id="error">No Errors</div>
+                <button id="breset" type="button">Reset</button>
+                <button id="bstep" type="button">Run Step</button>
+                <button id="ball" type="button">Run All</button>
+            </div>
+            <div id="text-edit">
+                <div id="line-nums"></div>
+                <div id="text-area" spellcheck="false" contenteditable></div>
+            </div>
+        </div>
+        <div id="registers"></div>
+        <div id="memories">
+            <div id="inspace">
+                <div class="sect-label">Instruction Memory</div>
+                <div id="instruction-mem">
+                    <div class='head'><div>Address</div><div>Hex</div><div>Decimal</div></div>
+                </div>
+            </div>
+            <div id="main-mem"></div>
+        </div>
+    </div>
+</body>
+</html>

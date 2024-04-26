@@ -1,0 +1,136 @@
+body {
+    margin: 0;
+    overflow: hidden;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+#container{
+    display: flex;
+    flex-direction: row;
+    width: 100vw;
+    height: 100vh;
+}
+
+#editor {
+    flex: 4;
+    display: flex;
+    flex-direction: column;
+}
+
+#registers{
+    flex: 2;
+}
+
+#memories{
+    flex: 3;
+    display: flex;
+    flex-direction: column;
+}
+
+#memories > div {
+    flex: 1;
+    border: solid 2px #171717;
+}
+
+#controls {
+    flex: 2;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    text-align: center;
+}
+
+#controls >button{
+    flex: 1;
+}
+
+#error{
+    font-size: 18px;
+    flex: 10;
+    align-self: center;
+}
+#error.ered{
+    color: red;
+}
+#text-edit{
+    flex: 28;
+    display: flex;
+    flex-direction: row;
+    border: outset 2px #171717;
+    font-size: 18px;
+    font-family: monospace;
+    overflow-y: auto;
+}
+
+#line-nums{
+    background-color:#ccc;
+    text-align: right;
+    font-size: inherit;
+    padding: 2px;
+    user-select: none;
+    color: #171717;
+    font-family: inherit;
+    min-height: 100%;
+    height: max-content;
+}
+
+
+#text-area {
+    font-size: inherit;
+    border-radius: 0;
+    border: none;
+    margin: 0;
+    margin-block: 0;
+    font-family: inherit;
+    outline: unset;
+    width: 100%;
+    height: 100%;
+}
+
+#inspace{
+    display: flex;
+    flex-direction: column;
+}
+
+.sect-label{
+    font-size: 24px;
+    text-align: center;
+}
+
+#instruction-mem{
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    overflow-y: auto;
+}
+
+.head,
+.ops{
+    font-size: 12px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+.head{
+    border-top: solid #000 2px;
+    border-bottom: solid #000 2px;
+}
+
+.ops{
+    border-bottom: solid #171717 2px;
+}
+
+.head>div{
+    flex: 1;
+    text-align: center;
+}
+
+.ops>div {
+    flex: 1;
+    text-align: center;
+}
