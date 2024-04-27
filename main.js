@@ -125,10 +125,72 @@ const SUPINS = {
     'lui'   : { type: 'I', opcode: 0xf  },
 };
 
-const Main_Memory = new Uint8Array(1024);
-const Instruction_Memory = new Int32Array(256);
+class MIPS_Memory {
+    constructor() {
+        // Initialize memory
+        this.memory = new Uint8Array(0xFFFFFFFF + 1);
+    }
+
+    /**
+     * Read a byte from memory.
+     * @param {number} address - The memory address to read from.
+     * @returns {number} The byte read from memory.
+     */
+    read_byte(address) {
+        if (address < 0 || address > 0xFFFFFFFF) {
+            console.error("Address out of bounds");
+        }
+        return this.memory[address];
+    }
+
+     /**
+     * Write a byte to memory.
+     * @param {number} address - The memory address to write to.
+     * @param {number} value - The value to write to memory.
+     */
+    write_byte(address, value) {
+        if (address < 0 || address > 0xFFFFFFFF) {
+            console.error("Address out of bounds");
+        }
+        this.memory[address] = value;
+    }
+
+    /**
+     * Read a word (4 bytes) from memory.
+     * @param {number} address - The memory address to read from.
+     * @returns {number} The word read from memory.
+     */
+    read_word(address) {
+        if (address < 0 || address > 0xFFFFFFFC) {
+            console.error("Address out of bounds");
+        }
+        let word = 0;
+        for (let i = 0; i < 4; i++) {
+            word |= this.memory[address + i] << (i * 8);
+        }
+        return (word >>> 0);
+    }
+
+    /**
+     * Write a word (4 bytes) to memory.
+     * @param {number} address - The memory address to write to.
+     * @param {number} value - The value to write to memory.
+     */
+    write_word(address, value) {
+        if (address < 0 || address > 0xFFFFFFFC) {
+            console.error("Address out of bounds");
+        }
+        for (let i = 0; i < 4; i++) {
+            this.memory[address + i] = (value >> (i * 8)) & 0xFF;
+        }
+    }
+}
+
+const Memory = new MIPS_Memory();
 const Registers = new Int32Array(32);
-let PC = 0; // Program Counter 
+Registers[REG.$sp] = 0x7fffeffc;
+Registers[REG.$gp] = 0x10008000;
+let PC = 0x00400000; // Program Counter 
 let HI = 0;
 let LO = 0;
 let is_error = false;
@@ -395,7 +457,7 @@ function textarea_change() {
             }
         }
         result = result >>> 0; // get rid off sign!
-        Instruction_Memory[i] = result;
+        Memory.write_word((i*4)+PC, result)
 
         let binary_rep = result.toString(2).padStart(32,'0');
         function strbits2decimal(value){
@@ -424,7 +486,7 @@ function textarea_change() {
                 break;
         }
         new_instructions += `<div class="ops">
-                                <div>0x${(i*4).toString(16).padStart(8,'0')}</div>
+                                <div>0x${((i*4)+PC).toString(16).padStart(8,'0')}</div>
                                 <div>0x${result.toString(16).padStart(8,'0')}</div>
                                 <div>${binary_rep}</div>
                             </div>`;
@@ -434,6 +496,6 @@ function textarea_change() {
 }
 
 
-function run_interpreter() {
+function run_interpreter(times) {
     
 }
