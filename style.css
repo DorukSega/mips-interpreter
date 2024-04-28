@@ -171,3 +171,7 @@ body {
     flex: 1;
     text-align: center;
 }
+#line-nums > .cur{
+    background-color: #ff4f58;
+    color: #fff;
+}

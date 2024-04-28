@@ -22,10 +22,12 @@ function breset_click() {
     LO = 0
     textarea_change()
     load_registers()
-    text_area.disabled = false
+    text_area.contentEditable = true
     bstep.disabled = false
     ball.disabled = false
-
+    const pastline = document.querySelector('.cur')
+    if (pastline)
+        pastline.classList.remove('cur'); 
 }
 
 function bstep_click() {
@@ -79,7 +81,7 @@ function show_error(err) {
 function write_linenums() {
     const line_nums = document.getElementById("line-nums")
     for (let i = 1; i <= 30; i++)
-        line_nums.innerText += i + "\n";
+        line_nums.innerHTML += `<div id='ln${i}'>${i}</div>`;
 }
 
 const REG = {
@@ -574,15 +576,22 @@ function parse_sigint(binaryString, bitSize) {
 
 let program_finished = false;
 function run_interpreter(times) {
+    document.getElementById("text-area").contentEditable = false
     program_finished = false
     for (let i = 0; i < times; i++) {
         if (program_finished)
             break;
-        console.log(Registers)
+        const pastline = document.querySelector('.cur')
+            if (pastline)
+                pastline.classList.remove('cur'); 
+        const lineel = document.getElementById(`ln${((PC % 0x00400000) / 4) + 1}`)
+        lineel.classList.add('cur')
+
         run_code(PC);
         PC += 4; 
         load_registers();
     }
+    
 }
 
 function run_code(lPC){
