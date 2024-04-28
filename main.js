@@ -8,11 +8,12 @@ window.onload = function () {
 }
 
 function breset_click() {
-
+    // reset PC
+    PC = 0x00400000;
 }
 
 function bstep_click() {
-
+    run_interpreter(1)
 }
 
 function ball_click() {
@@ -269,8 +270,6 @@ function textarea_change() {
             }
             case "addi":
             case "addiu": 
-            case "andi":
-            case "ori":
             case "slti":
             case "sltiu": {
                 if (delim_line.length !== 3){
@@ -289,6 +288,30 @@ function textarea_change() {
                     return
                 }
                 if ( im < -32768 || im > 32767) {  // 16 bit range
+                    show_error(`L${i+1}: immediate value is out of range ${delim_line[2]}`)
+                    return
+                }
+                result = (info.opcode << 26) | (rs << 21) | (rt << 16) | (im & 0xFFFF);
+                break;
+            }
+            case "andi":
+            case "ori": {
+                if (delim_line.length !== 3){
+                    show_error(`L${i+1}: ${ins} needs 3 values`)
+                    return 
+                } 
+                const rs = REG[delim_line[1]]
+                const rt = REG[delim_line[0]] 
+                const im = parseInt(delim_line[2]) 
+                if (rs === undefined || rt === undefined){
+                    show_error(`L${i+1}: invalid value(s) ${rs?'':'rs '}${rt?'':'rt'}`)
+                    return 
+                }
+                if (isNaN(im) || im === undefined){
+                    show_error(`L${i+1}: invalid immediate value ${delim_line[2]}`)
+                    return
+                }
+                if ( im < 0 || im > 65535) {  // 16 bit range
                     show_error(`L${i+1}: immediate value is out of range ${delim_line[2]}`)
                     return
                 }
@@ -495,7 +518,76 @@ function textarea_change() {
     instruction_mem.innerHTML = new_instructions;
 }
 
+function parse_sigint(binaryString, bitSize) {
+    // Parse the binary string to an integer
+    let value = parseInt(binaryString, 2);
+
+    // If the most significant bit is set
+    if (value & (1 << (bitSize - 1))) {
+        // Convert from two's complement
+        value = value - Math.pow(2, bitSize);
+    }
+
+    return value;
+}
 
 function run_interpreter(times) {
-    
+    for (let i = 0; i < times; i++) {
+        run_code(PC);
+        PC += 4; 
+    }
+}
+
+function run_code(lPC){
+    const ins_line = Memory.read_word(lPC);
+    if (ins_line === 0){
+        console.log("Program finished")
+        // TODO: add a popup and reset?
+        breset_click()
+        return
+    } 
+    const opcode = ins_line >>> 26;
+    const ins_str = ins_line.toString(2).padStart(32, '0') 
+    if (opcode === 0) { // R type
+
+    } else if (opcode === 2 || opcode === 3){ // J type
+
+    } else if (opcode > 3 && opcode < 44){ // I type
+        const rs  = parseInt(ins_str.slice(6, 11) , 2)
+        const rt  = parseInt(ins_str.slice(11,16) , 2)
+        
+        switch (opcode) {
+            case 8: { // addi
+                const imm = parse_sigint(ins_str.slice(16), 16) // Sign extended
+                Registers[rt] = Registers[rs] + imm
+                break;
+            }
+            case 13: { // ori
+                const imm = parseInt(ins_str.slice(16), 2) // Zero extended
+                Registers[rt] = Registers[rs] | imm
+                break;
+            }
+            case 15: { // lui
+                const imm = parseInt(ins_str.slice(16), 2) // Zero extended
+                Registers[rt] = imm << 16
+                break;
+            }
+            case 35: { // lw
+                const imm = parse_sigint(ins_str.slice(16), 16) // Sign extended
+                Registers[rt] = Memory.read_word(rs + imm)
+                break;
+            }
+            case 43: { // sw
+                const imm = parse_sigint(ins_str.slice(16), 16) // Sign extended
+                Memory.write_word(rs + imm, Registers[rt])  
+                break;
+            }
+            default: {
+                console.error(`I type opcode not implemented ${opcode}`)
+                break;
+            }
+        }
+    } else{
+        console.error("Bad opcode!") // TODO: add more info
+    }
 }
