@@ -22,6 +22,8 @@ body {
 
 #registers{
     flex: 2;
+    display: flex;
+    flex-direction: column;
 }
 
 #memories{
@@ -30,6 +32,30 @@ body {
     flex-direction: column;
 }
 
+#main-registers{
+    flex: 8;
+    display: flex;
+    flex-direction: column;
+}
+
+#main-registers >div{
+    font-size: 14px;
+}
+
+#rest-registers{
+    flex: 4;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    font-size: 18px;
+}
+
+#rest-registers > div{
+    display: flex;
+    justify-content: space-between;
+    padding: 0 10%;
+    flex-direction: row;
+}
 #memories > div {
     flex: 1;
     border: solid 2px #171717;
@@ -52,9 +78,11 @@ body {
     flex: 10;
     align-self: center;
 }
+
 #error.ered{
     color: red;
 }
+
 #text-edit{
     flex: 28;
     display: flex;
@@ -90,9 +118,10 @@ body {
     height: 100%;
 }
 
-#inspace{
+.inspace{
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
 }
 
 .sect-label{
@@ -101,6 +130,14 @@ body {
 }
 
 #instruction-mem{
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    overflow-y: auto;
+}
+
+#data-mem{
     display: flex;
     flex-direction: column;
     height: 100%;

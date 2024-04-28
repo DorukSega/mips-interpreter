@@ -22,15 +22,38 @@
                 <div id="text-area" spellcheck="false" contenteditable></div>
             </div>
         </div>
-        <div id="registers"></div>
+        <div id="registers">
+            <div id="main-registers">
+                <div class='head'><div>Name</div><div>Number</div><div>Value</div></div>
+            </div>
+            <div id="rest-registers">
+                <div id="PC">
+                    <div>PC</div>
+                    <div>0</div>
+                </div>
+                <div id="HI">
+                    <div>HI</div>
+                    <div>0</div>
+                </div>
+                <div id="LO">
+                    <div>LO</div>
+                    <div>0</div>
+                </div>
+            </div>
+        </div>
         <div id="memories">
-            <div id="inspace">
+            <div class="inspace">
                 <div class="sect-label">Instruction Memory</div>
                 <div id="instruction-mem">
                     <div class='head'><div>Address</div><div>Hex</div><div>Decimal</div></div>
                 </div>
             </div>
-            <div id="main-mem"></div>
+            <div class="inspace">
+                <div class="sect-label">Data Memory</div>
+                <div id="data-mem">
+                    <div class='head'><div>Address</div><div>Hex</div></div>
+                </div>
+            </div>
         </div>
     </div>
 </body>

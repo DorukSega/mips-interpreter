@@ -5,11 +5,27 @@ window.onload = function () {
     document.getElementById("ball").onclick = ball_click
     document.getElementById("text-area").oninput = textarea_change 
     write_linenums() 
+    load_registers()
 }
 
 function breset_click() {
-    // reset PC
+    const text_area =  document.getElementById("text-area")
+    const bstep = document.getElementById("bstep")
+    const ball = document.getElementById("ball")
+    Memory.clear_memory()
+    Registers = new Int32Array(32);
+    Registers[REG.$sp] = 0x7fffeffc;
+    Registers[REG.$gp] = 0x10008000;
+
     PC = 0x00400000;
+    HI = 0
+    LO = 0
+    textarea_change()
+    load_registers()
+    text_area.disabled = false
+    bstep.disabled = false
+    ball.disabled = false
+
 }
 
 function bstep_click() {
@@ -17,7 +33,28 @@ function bstep_click() {
 }
 
 function ball_click() {
-  
+    run_interpreter(1000)
+}
+
+function load_registers(){
+    const mreg = document.getElementById("main-registers")
+    mreg.innerHTML = "<div class='head'><div>Name</div><div>Number</div><div>Value</div></div>";
+    for(const reg in REG){
+        if (reg === '$0')
+            continue;
+        mreg.innerHTML += `<div class='ops'><div>${reg}</div><div>${REG[reg]}</div><div>0x${(Registers[REG[reg]]>>>0).toString(16)}</div></div>`;
+    }
+    const PC_el = document.getElementById("PC")
+    const HI_el = document.getElementById("HI")
+    const LO_el = document.getElementById("LO")
+    PC_el.children[1].textContent = "0x"+ PC.toString(16).padStart(8,'0')
+    HI_el.children[1].textContent = HI
+    LO_el.children[1].textContent = LO
+    const data_mem = document.getElementById("data-mem")
+    data_mem.innerHTML = "<div class='head'><div>Address</div><div>Hex</div></div>";
+    for(let i = 0x10010000; i < 0x10010100; i+=4){
+        data_mem.innerHTML += `<div class='ops'><div>0x${i.toString(16).padStart(8,'0')}</div><div>0x${Memory.read_word(i).toString(16).padStart(8,'0')}</div></div>`
+    }
 }
 
 function show_error(err) {
@@ -91,7 +128,7 @@ const SUPINS = {
     'slt'   : { type: 'R', opcode: 0,  funct: 0x2a },
     'sub'   : { type: 'R', opcode: 0,  funct: 0x22 },
     'subu'  : { type: 'R', opcode: 0,  funct: 0x32 },
-    "mul"   : { type: 'R', opcode: 28, funct: 0x2 },
+    'mul'   : { type: 'R', opcode: 28, funct: 0x2 },
     // addi $rt, $rs, IM
     'addi'  : { type: 'I', opcode: 0x8  },
     'addiu' : { type: 'I', opcode: 0x9  },
@@ -129,6 +166,10 @@ const SUPINS = {
 class MIPS_Memory {
     constructor() {
         // Initialize memory
+        this.memory = new Uint8Array(0xFFFFFFFF + 1);
+    }
+
+    clear_memory(){
         this.memory = new Uint8Array(0xFFFFFFFF + 1);
     }
 
@@ -188,7 +229,7 @@ class MIPS_Memory {
 }
 
 const Memory = new MIPS_Memory();
-const Registers = new Int32Array(32);
+let Registers = new Int32Array(32);
 Registers[REG.$sp] = 0x7fffeffc;
 Registers[REG.$gp] = 0x10008000;
 let PC = 0x00400000; // Program Counter 
@@ -236,7 +277,7 @@ function textarea_change() {
         }
 
         if (!(ins in SUPINS)){
-            show_error(`L${i+1}: invalid instruction ${ins}`)
+            show_error(`L${i+1}: unsupported instruction ${ins}`)
             return
         }
         const rest_line = line.slice(len_first).trim()
@@ -353,7 +394,7 @@ function textarea_change() {
                     show_error(`L${i+1}: ${lbl} no such label`)
                     return 
                 }
-                lbl_add = lbl_add & 0x3FFFFFF  // mask to 26 bits
+                lbl_add = (lbl_add + (PC >>> 2)) & 0x3FFFFFF  // mask to 26 bits
                 result = (info.opcode << 26) | lbl_add;
                 break;
             }
@@ -531,10 +572,16 @@ function parse_sigint(binaryString, bitSize) {
     return value;
 }
 
+let program_finished = false;
 function run_interpreter(times) {
+    program_finished = false
     for (let i = 0; i < times; i++) {
+        if (program_finished)
+            break;
+        console.log(Registers)
         run_code(PC);
         PC += 4; 
+        load_registers();
     }
 }
 
@@ -543,23 +590,135 @@ function run_code(lPC){
     if (ins_line === 0){
         console.log("Program finished")
         // TODO: add a popup and reset?
-        breset_click()
+        bstep.disabled = true
+        ball.disabled = true
+        program_finished = true
         return
     } 
     const opcode = ins_line >>> 26;
     const ins_str = ins_line.toString(2).padStart(32, '0') 
-    if (opcode === 0) { // R type
+    if (opcode === 0 || opcode === 28) { // R type
+        const rs     = parseInt(ins_str.slice(6, 11) , 2)
+        const rt     = parseInt(ins_str.slice(11,16) , 2)
+        const rd     = parseInt(ins_str.slice(16, 21) , 2)
+        const sh     = parseInt(ins_str.slice(21, 26) , 2)
+        const funct  = parseInt(ins_str.slice(26, 32) , 2)
+        if (opcode === 28 && funct === 2) { // mul
+            Registers[rd] = Registers[rs] * Registers[rt];
+            return
+        }
+        switch (funct) {
+            case 0: { // sll
+                Registers[rd] =  Registers[rt] << sh
+                break;
+            }
+            case 2: { // srl
+                console.log(sh)
+                Registers[rd] =  Registers[rt] >>> sh
+                break;
+            }
+            case 3: { // sra
+                Registers[rd] =  Registers[rt] >> sh
+                break;
+            }
+            case 8: { //jr
+                PC = Registers[rs] - 4 // subtracted because PC+=4
+                break;
+            }
+            case 16: { // mfhi
+                Registers[rd] = HI
+                break;
+            }   
+            case 18: { // mflo
+                Registers[rd] = LO
+                break;
+            }  
+            case 32:   // add
+            case 33: { // addu
+                Registers[rd] = Registers[rs] + Registers[rt]
+                break;
+            }
+            case 34:   // sub
+            case 35: { // subu
+                Registers[rd] = Registers[rs] - Registers[rt]
+                break;
+            }
+            case 36: { // and
+                Registers[rd] = Registers[rs] & Registers[rt]
+                break;
+            }
+            case 37: { // or
+                Registers[rd] = Registers[rs] | Registers[rt]
+                break;
+            }
+            case 24:   // mult
+            case 25: { // multu
+                let rs_b = BigInt(Registers[rs])
+                let rt_b = BigInt(Registers[rt])
+                let result = BigInt(rs_b) * BigInt(rt_b);
 
+                LO = Number(result & BigInt("0xFFFFFFFF"))
+                HI = Number((result >> BigInt(32)) & BigInt("0xFFFFFFFF"))
+                break;
+            }   
+            case 26:   // div
+            case 27: { // divu
+                LO = Registers[rs] / Registers[rt]
+                HI = Registers[rs] % Registers[rt]
+                break;
+            }   
+            case 39: { // nor
+                Registers[rd] = ~(Registers[rs] | Registers[rt]) >>> 0
+                break;
+            }
+            case 42: { // slt
+                Registers[rd] = Registers[rs] < Registers[rt]
+                break;
+            }
+        
+            default:
+                break;
+        }
     } else if (opcode === 2 || opcode === 3){ // J type
-
+        const address = parseInt(ins_str.slice(6, 32) , 2)
+        if (opcode === 2){ // j
+            PC = (address * 4) - 4 // address << 2
+        } else if (opcode === 3){ // jal
+            Registers[REG.$ra] = PC + 4
+            PC = (address * 4) - 4 // address << 2
+        }
     } else if (opcode > 3 && opcode < 44){ // I type
         const rs  = parseInt(ins_str.slice(6, 11) , 2)
         const rt  = parseInt(ins_str.slice(11,16) , 2)
         
         switch (opcode) {
-            case 8: { // addi
+            case 4: { // beq
+                const imm = parse_sigint(ins_str.slice(16), 16) // Sign extended
+                if (Registers[rs] === Registers[rt])
+                    PC += (imm*4);
+                break;
+            }
+            case 5: { // bne
+                const imm = parse_sigint(ins_str.slice(16), 16) // Sign extended
+                if (Registers[rs] !== Registers[rt])
+                    PC += (imm*4);
+                break;
+            }
+            case 8:   // addi
+            case 9: { // addiu
                 const imm = parse_sigint(ins_str.slice(16), 16) // Sign extended
                 Registers[rt] = Registers[rs] + imm
+                break;
+            }
+            case 10:   // slti
+            case 11: { // sltiu
+                const imm = parse_sigint(ins_str.slice(16), 16) // Sign extended
+                Registers[rt] = (Registers[rs] < imm) ? 1 : 0
+                break;
+            }
+            case 12: { // andi
+                const imm = parseInt(ins_str.slice(16), 2) // Zero extended
+                Registers[rt] = Registers[rs] & imm
                 break;
             }
             case 13: { // ori
@@ -574,12 +733,12 @@ function run_code(lPC){
             }
             case 35: { // lw
                 const imm = parse_sigint(ins_str.slice(16), 16) // Sign extended
-                Registers[rt] = Memory.read_word(rs + imm)
+                Registers[rt] = Memory.read_word(Registers[rs] + imm)
                 break;
             }
             case 43: { // sw
                 const imm = parse_sigint(ins_str.slice(16), 16) // Sign extended
-                Memory.write_word(rs + imm, Registers[rt])  
+                Memory.write_word(Registers[rs] + imm, Registers[rt])  
                 break;
             }
             default: {
