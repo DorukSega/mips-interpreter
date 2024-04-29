@@ -42,7 +42,7 @@ function load_registers(){
     const mreg = document.getElementById("main-registers")
     mreg.innerHTML = "<div class='head'><div>Name</div><div>Number</div><div>Value</div></div>";
     for(const reg in REG){
-        if (reg === '$0')
+        if (reg.match(/\$\d+/))
             continue;
         mreg.innerHTML += `<div class='ops'><div>${reg}</div><div>${REG[reg]}</div><div>0x${(Registers[REG[reg]]>>>0).toString(16)}</div></div>`;
     }
@@ -85,39 +85,70 @@ function write_linenums() {
 }
 
 const REG = {
-    $0: 0, // zero register
+    $0:    0, 
+    $1:    1,
+    $2:    2,
+    $3:    3,
+    $4:    4,
+    $5:    5,
+    $6:    6,
+    $7:    7,
+    $8:    8,
+    $9:    9,
+    $10:   10,
+    $11:   11,
+    $12:   12,
+    $13:   13,
+    $14:   14,
+    $15:   15,
+    $16:   16,
+    $17:   17,
+    $18:   18,
+    $19:   19,
+    $20:   20,
+    $21:   21,
+    $22:   22,
+    $23:   23,
+    $24:   24,
+    $25:   25,
+    $26:   26,
+    $27:   27,
+    $28:   28,
+    $29:   29,
+    $30:   30,
+    $31:   31,
     $zero: 0,
-    $at: 1, 
-    $v0: 2, // procedure return
-    $v1: 3,
-    $a0: 4, // arguments
-    $a1: 5,
-    $a2: 6,
-    $a3: 7,
-    $t0: 8, // temporaries
-    $t1: 9,
-    $t2: 10,
-    $t3: 11,
-    $t4: 12,
-    $t5: 13,
-    $t6: 14,
-    $t7: 15,
-    $s0: 16, // saved
-    $s1: 17,
-    $s2: 18,
-    $s3: 19,
-    $s4: 20,
-    $s5: 21,
-    $s6: 22,
-    $s7: 23,
-    $t8: 24, 
-    $t9: 25,
-    $k0: 26,
-    $k1: 27,
-    $gp: 28,
-    $sp: 29, // stack pointer
-    $fp: 30, // frame pointer
-    $ra: 31  // return adress
+    $at:   1, 
+    $v0:   2, // procedure return
+    $v1:   3,
+    $a0:   4, // arguments
+    $a1:   5,
+    $a2:   6,
+    $a3:   7,
+    $t0:   8, // temporaries
+    $t1:   9,
+    $t2:   10,
+    $t3:   11,
+    $t4:   12,
+    $t5:   13,
+    $t6:   14,
+    $t7:   15,
+    $s0:   16, // saved
+    $s1:   17,
+    $s2:   18,
+    $s3:   19,
+    $s4:   20,
+    $s5:   21,
+    $s6:   22,
+    $s7:   23,
+    $t8:   24, 
+    $t9:   25,
+    $k0:   26,
+    $k1:   27,
+    $gp:   28,
+    $sp:   29, // stack pointer
+    $fp:   30, // frame pointer
+    $ra:   31  // return adress
 };
 
 const SUPINS = {
@@ -163,6 +194,10 @@ const SUPINS = {
     'multu' : { type: 'R', opcode: 0,  funct: 0x19 },
     // lui $rt, IM
     'lui'   : { type: 'I', opcode: 0xf  },
+    // pseudo
+    'move'  : { type: 'I', opcode: 0x8  }, // move $rt, $rs -> addi $rt, $rs, 0
+    'nop'   : { type: 'R', opcode: 0,  funct: 0x00 },
+    'li'    : { type: 'I', opcode: 0x8  }, // li $rt, im -> addi $rt, $0, im
 };
 
 class MIPS_Memory {
@@ -238,6 +273,8 @@ let PC = 0x00400000; // Program Counter
 let HI = 0;
 let LO = 0;
 let is_error = false;
+let last_pc = 0;
+
 
 function textarea_change() {
     const text_area =  document.getElementById("text-area")
@@ -250,13 +287,13 @@ function textarea_change() {
         return
     }
     let lines = input.split('\n').filter(x=> x!=="").map(x=> x.trim()).map(x=> x.replace(/#.+/,''));
-
+   
     // gather all labels
     const Labels = {}
     let label_i = 0;
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        const mc =  line.match(/.+:/g)
+        const mc =  line.match(/.+:/)
         if (mc){
             const label = mc[0].replace(':','').trim();
             const rest = lines[i].slice(mc[0].length).trim()
@@ -335,6 +372,42 @@ function textarea_change() {
                     return
                 }
                 result = (info.opcode << 26) | (rs << 21) | (rt << 16) | (im & 0xFFFF);
+                break;
+            }
+            case "move":{
+                if (delim_line.length !== 2){
+                    show_error(`L${i+1}: ${ins} needs 2 values`)
+                    return 
+                } 
+                const rt = REG[delim_line[0]] 
+                const rs = REG[delim_line[1]]
+                if (rs === undefined || rt === undefined){
+                    show_error(`L${i+1}: invalid value(s) ${rs?'':'rs '}${rt?'':'rt'}`)
+                    return 
+                }
+                result = (info.opcode << 26) | (rs << 21) | (rt << 16) | 0; // addi $rt, $rs, 0
+                break;
+            }
+            case "li":{
+                if (delim_line.length !== 2){
+                    show_error(`L${i+1}: ${ins} needs 2 values`)
+                    return 
+                } 
+                const rt = REG[delim_line[0]] 
+                const im = parseInt(delim_line[1]) 
+                if (rt === undefined){
+                    show_error(`L${i+1}: invalid value rt`)
+                    return 
+                }
+                if (isNaN(im) || im === undefined){
+                    show_error(`L${i+1}: invalid immediate value ${delim_line[2]}`)
+                    return
+                }
+                if ( im < -32768 || im > 32767) {  // 16 bit range
+                    show_error(`L${i+1}: immediate value is out of range ${delim_line[2]}`)
+                    return
+                }
+                result = (info.opcode << 26) | (REG.$0 << 21) | (rt << 16) | (im & 0xFFFF); // addi $rt, $0, IM
                 break;
             }
             case "andi":
@@ -517,6 +590,14 @@ function textarea_change() {
                 result = (info.opcode << 26) | (rt << 16) | (rd << 11) | (sh << 6) | info.funct;
                 break;
             }
+            case "nop":{
+                if (delim_line.length !== 1 || delim_line[0] !== ""){
+                    show_error(`L${i+1}: ${ins} needs 0 values`)
+                    return 
+                } 
+                result = (info.opcode << 26) | (REG.$0 << 16) | (REG.$0 << 11) | (0 << 6) | info.funct;
+                break;
+            }
             default:{
                 show_error(`L${i+1}: ${ins} not implemented`)
                 return;
@@ -524,7 +605,7 @@ function textarea_change() {
         }
         result = result >>> 0; // get rid off sign!
         Memory.write_word((i*4)+PC, result)
-
+        last_pc = (i*4)+PC;
         let binary_rep = result.toString(2).padStart(32,'0');
         function strbits2decimal(value){
             return parseInt(value,2).toString()
@@ -558,6 +639,7 @@ function textarea_change() {
                             </div>`;
     }
     
+   
     instruction_mem.innerHTML = new_instructions;
 }
 
@@ -575,16 +657,26 @@ function parse_sigint(binaryString, bitSize) {
 }
 
 let program_finished = false;
+function PC2LN() {
+    return ((PC % 0x00400000) / 4) + 1 
+}
+
 function run_interpreter(times) {
     document.getElementById("text-area").contentEditable = false
     program_finished = false
     for (let i = 0; i < times; i++) {
-        if (program_finished)
+        if (PC > last_pc){
+            console.log("Program finished")
+            bstep.disabled = true
+            ball.disabled = true
+            program_finished = true
             break;
+        }
+  
         const pastline = document.querySelector('.cur')
             if (pastline)
                 pastline.classList.remove('cur'); 
-        const lineel = document.getElementById(`ln${((PC % 0x00400000) / 4) + 1}`)
+        const lineel = document.getElementById(`ln${PC2LN()}`)
         lineel.classList.add('cur')
 
         run_code(PC);
@@ -596,14 +688,6 @@ function run_interpreter(times) {
 
 function run_code(lPC){
     const ins_line = Memory.read_word(lPC);
-    if (ins_line === 0){
-        console.log("Program finished")
-        // TODO: add a popup and reset?
-        bstep.disabled = true
-        ball.disabled = true
-        program_finished = true
-        return
-    } 
     const opcode = ins_line >>> 26;
     const ins_str = ins_line.toString(2).padStart(32, '0') 
     if (opcode === 0 || opcode === 28) { // R type
@@ -622,7 +706,6 @@ function run_code(lPC){
                 break;
             }
             case 2: { // srl
-                console.log(sh)
                 Registers[rd] =  Registers[rt] >>> sh
                 break;
             }
@@ -685,8 +768,10 @@ function run_code(lPC){
                 break;
             }
         
-            default:
+            default: {
+                console.error(`R type funct not implemented ${funct}`)
                 break;
+            }
         }
     } else if (opcode === 2 || opcode === 3){ // J type
         const address = parseInt(ins_str.slice(6, 32) , 2)
