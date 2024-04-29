@@ -200,14 +200,18 @@ const SUPINS = {
     'li'    : { type: 'I', opcode: 0x8  }, // li $rt, im -> addi $rt, $0, im
 };
 
+const max_memory = 0x70000000; // should be more but decreased for optimization
+
 class MIPS_Memory {
+     
     constructor() {
         // Initialize memory
-        this.memory = new Uint8Array(0xFFFFFFFF + 1);
+        this.memory = new Uint8Array(max_memory + 1);
     }
+   
 
     clear_memory(){
-        this.memory = new Uint8Array(0xFFFFFFFF + 1);
+        this.memory = new Uint8Array(max_memory + 1);
     }
 
     /**
@@ -216,7 +220,7 @@ class MIPS_Memory {
      * @returns {number} The byte read from memory.
      */
     read_byte(address) {
-        if (address < 0 || address > 0xFFFFFFFF) {
+        if (address < 0 || address > max_memory) {
             console.error("Address out of bounds");
         }
         return this.memory[address];
@@ -228,7 +232,7 @@ class MIPS_Memory {
      * @param {number} value - The value to write to memory.
      */
     write_byte(address, value) {
-        if (address < 0 || address > 0xFFFFFFFF) {
+        if (address < 0 || address > max_memory) {
             console.error("Address out of bounds");
         }
         this.memory[address] = value;
@@ -240,7 +244,7 @@ class MIPS_Memory {
      * @returns {number} The word read from memory.
      */
     read_word(address) {
-        if (address < 0 || address > 0xFFFFFFFC) {
+        if (address < 0 || address > (max_memory-3)) {
             console.error("Address out of bounds");
         }
         let word = 0;
@@ -256,7 +260,7 @@ class MIPS_Memory {
      * @param {number} value - The value to write to memory.
      */
     write_word(address, value) {
-        if (address < 0 || address > 0xFFFFFFFC) {
+        if (address < 0 || address > (max_memory-3)) {
             console.error("Address out of bounds");
         }
         for (let i = 0; i < 4; i++) {
@@ -267,7 +271,7 @@ class MIPS_Memory {
 
 const Memory = new MIPS_Memory();
 let Registers = new Int32Array(32);
-Registers[REG.$sp] = 0x7fffeffc;
+Registers[REG.$sp] = 0x6fffeffc;
 Registers[REG.$gp] = 0x10008000;
 let PC = 0x00400000; // Program Counter 
 let HI = 0;
