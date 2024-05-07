@@ -1,89 +1,4 @@
 
-window.onload = function () {
-    document.getElementById("breset").onclick = breset_click
-    document.getElementById("bstep").onclick = bstep_click
-    document.getElementById("ball").onclick = ball_click
-    document.getElementById("text-area").oninput = textarea_change 
-    write_linenums() 
-    load_registers()
-}
-
-function breset_click() {
-    const text_area =  document.getElementById("text-area")
-    const bstep = document.getElementById("bstep")
-    const ball = document.getElementById("ball")
-    Memory.clear_memory()
-    Registers = new Int32Array(32);
-    Registers[REG.$sp] = 0x7fffeffc;
-    Registers[REG.$gp] = 0x10008000;
-
-    PC = 0x00400000;
-    HI = 0
-    LO = 0
-    textarea_change()
-    load_registers()
-    text_area.contentEditable = true
-    bstep.disabled = false
-    ball.disabled = false
-    const pastline = document.querySelector('.cur')
-    if (pastline)
-        pastline.classList.remove('cur'); 
-}
-
-function bstep_click() {
-    run_interpreter(1)
-}
-
-function ball_click() {
-    run_interpreter(1000)
-}
-
-function load_registers(){
-    const mreg = document.getElementById("main-registers")
-    mreg.innerHTML = "<div class='head'><div>Name</div><div>Number</div><div>Value</div></div>";
-    for(const reg in REG){
-        if (reg.match(/\$\d+/))
-            continue;
-        mreg.innerHTML += `<div class='ops'><div>${reg}</div><div>${REG[reg]}</div><div>0x${(Registers[REG[reg]]>>>0).toString(16)}</div></div>`;
-    }
-    const PC_el = document.getElementById("PC")
-    const HI_el = document.getElementById("HI")
-    const LO_el = document.getElementById("LO")
-    PC_el.children[1].textContent = "0x"+ PC.toString(16).padStart(8,'0')
-    HI_el.children[1].textContent = HI
-    LO_el.children[1].textContent = LO
-    const data_mem = document.getElementById("data-mem")
-    data_mem.innerHTML = "<div class='head'><div>Address</div><div>Hex</div></div>";
-    for(let i = 0x10010000; i < 0x10010100; i+=4){
-        data_mem.innerHTML += `<div class='ops'><div>0x${i.toString(16).padStart(8,'0')}</div><div>0x${Memory.read_word(i).toString(16).padStart(8,'0')}</div></div>`
-    }
-}
-
-function show_error(err) {
-    const el = document.getElementById("error")
-    const bstep = document.getElementById("bstep")
-    const ball = document.getElementById("ball")
-    if (err === undefined) {
-        el.textContent = "No Errors"
-        el.classList.remove("ered")
-        is_error = false
-        bstep.disabled = false
-        ball.disabled = false
-        return
-    }
-    el.textContent = err
-    el.classList.add("ered")
-    bstep.disabled = true
-    ball.disabled = true
-    is_error = true
-}
-
-function write_linenums() {
-    const line_nums = document.getElementById("line-nums")
-    for (let i = 1; i <= 30; i++)
-        line_nums.innerHTML += `<div id='ln${i}'>${i}</div>`;
-}
-
 const REG = {
     $0:    0, 
     $1:    1,
@@ -269,20 +184,115 @@ class MIPS_Memory {
     }
 }
 
+ 
+const PC_START = 0x00400000;
+const SP_START = 0x6fffeffc;
+const GP_START = 0x10008000;
 const Memory = new MIPS_Memory();
 let Registers = new Int32Array(32);
-Registers[REG.$sp] = 0x6fffeffc;
-Registers[REG.$gp] = 0x10008000;
-let PC = 0x00400000; // Program Counter 
+let PC = PC_START; // Program Counter
 let HI = 0;
 let LO = 0;
+Registers[REG.$sp] = SP_START;
+Registers[REG.$gp] = GP_START;
+
+
 let is_error = false;
 let last_pc = 0;
 
 
+
+
+window.onload = function () {
+    document.getElementById("breset").onclick = breset_click
+    document.getElementById("bstep").onclick = bstep_click
+    document.getElementById("ball").onclick = ball_click
+    document.getElementById("text-area").oninput = textarea_change 
+    write_linenums() 
+    load_registers()
+}
+
+function breset_click() {
+    const text_area =  document.getElementById("text-area")
+    const bstep = document.getElementById("bstep")
+    const ball = document.getElementById("ball")
+    Memory.clear_memory()
+    Registers = new Int32Array(32);
+    Registers[REG.$sp] = SP_START;
+    Registers[REG.$gp] = GP_START;
+
+    PC = PC_START;
+    HI = 0;
+    LO = 0;
+    textarea_change()
+    load_registers()
+    text_area.contentEditable = true
+    bstep.disabled = false
+    ball.disabled = false
+    const pastline = document.querySelector('.cur')
+    if (pastline)
+        pastline.classList.remove('cur'); 
+}
+
+function bstep_click() {
+    run_interpreter(1)
+}
+
+function ball_click() {
+    run_interpreter(1000)
+}
+
+function load_registers(){
+    const mreg = document.getElementById("main-registers")
+    mreg.innerHTML = "<div class='head'><div>Name</div><div>Number</div><div>Value</div></div>";
+    for(const reg in REG){
+        if (reg.match(/\$\d+/))
+            continue;
+        mreg.innerHTML += `<div class='ops'><div>${reg}</div><div>${REG[reg]}</div><div>0x${(Registers[REG[reg]]>>>0).toString(16)}</div></div>`;
+    }
+    const PC_el = document.getElementById("PC")
+    const HI_el = document.getElementById("HI")
+    const LO_el = document.getElementById("LO")
+    PC_el.children[1].textContent = "0x"+ PC.toString(16).padStart(8,'0')
+    HI_el.children[1].textContent = HI
+    LO_el.children[1].textContent = LO
+    const data_mem = document.getElementById("data-mem")
+    data_mem.innerHTML = "<div class='head'><div>Address</div><div>Hex</div></div>";
+    for(let i = 0x10010000; i < 0x10010100; i+=4){
+        data_mem.innerHTML += `<div class='ops'><div>0x${i.toString(16).padStart(8,'0')}</div><div>0x${Memory.read_word(i).toString(16).padStart(8,'0')}</div></div>`
+    }
+}
+
+function show_error(err) {
+    const el = document.getElementById("error")
+    const bstep = document.getElementById("bstep")
+    const ball = document.getElementById("ball")
+    if (err === undefined) {
+        el.textContent = "No Errors"
+        el.classList.remove("ered")
+        is_error = false
+        bstep.disabled = false
+        ball.disabled = false
+        return
+    }
+    el.textContent = err
+    el.classList.add("ered")
+    bstep.disabled = true
+    ball.disabled = true
+    is_error = true
+}
+
+function write_linenums() {
+    const line_nums = document.getElementById("line-nums")
+    for (let i = 1; i <= 30; i++)
+        line_nums.innerHTML += `<div id='ln${i}'>${i}</div>`;
+}
+
+
+
 function textarea_change() {
     const text_area =  document.getElementById("text-area")
-    const input = text_area.innerText
+    const input = parse_inner_html(text_area.childNodes).newValue
     const instruction_mem = document.getElementById("instruction-mem")
     let new_instructions = "<div class='head'><div>Address</div><div>Hex</div><div>Decimal</div></div>";
     show_error()
@@ -290,27 +300,34 @@ function textarea_change() {
         instruction_mem.innerHTML = new_instructions;
         return
     }
-    let lines = input.split('\n').filter(x=> x!=="").map(x=> x.trim()).map(x=> x.replace(/#.+/,''));
-   
+    let lines = input.split('\n').map(x=> x.trim()).map(x=> x.replace(/#.+/,''));
     // gather all labels
     const Labels = {}
-    let label_i = 0;
+    let label_line_index = 0;
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const mc =  line.match(/.+:/)
-        if (mc){
+        if (line === "")
+            label_line_index--;
+        if (mc) {
             const label = mc[0].replace(':','').trim();
             const rest = lines[i].slice(mc[0].length).trim()
-            Labels[label] = label_i 
+            Labels[label] = label_line_index 
+            if (rest === "") 
+                label_line_index--;
             lines[i] = rest
-        } else label_i++;
+        }
+        label_line_index++
     }
     // convert to machine code
-    lines = lines.filter(x=> x!=="") // remove empty lines
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+    let  line_index = 0;
+    for (let rawi = 0; rawi < lines.length; rawi++) {
+        const line = lines[rawi];
         let ins = "";
         let len_first = 0;
+        if (line === "") {
+            continue
+        }
         ins_loop: for (const char of line) {
             len_first++;
             if (char.match(/\s/g)) // instruction
@@ -320,7 +337,7 @@ function textarea_change() {
         }
 
         if (!(ins in SUPINS)){
-            show_error(`L${i+1}: unsupported instruction ${ins}`)
+            show_error(`L${rawi+1}: unsupported instruction ${ins}`)
             return
         }
         const rest_line = line.slice(len_first).trim()
@@ -338,7 +355,7 @@ function textarea_change() {
             case "subu": 
             case "mul": {
                 if (delim_line.length !== 3){
-                    show_error(`L${i+1}: ${ins} needs 3 values`)
+                    show_error(`L${rawi+1}: ${ins} needs 3 values`)
                     return 
                 } 
                
@@ -346,7 +363,7 @@ function textarea_change() {
                 const rs = REG[delim_line[1]]
                 const rt = REG[delim_line[2]]
                 if (rd === undefined || rs === undefined || rt === undefined){
-                    show_error(`L${i+1}: invalid value(s) ${rd?'':'rd '}${rs?'':'rs '}${rt?'':'rt'}`)
+                    show_error(`L${rawi+1}: invalid value(s) ${rd?'':'rd '}${rs?'':'rs '}${rt?'':'rt'}`)
                     return 
                 }
                 result = (info.opcode << 26) | (rs << 21) | (rt << 16) | (rd << 11) | info.funct;
@@ -357,22 +374,22 @@ function textarea_change() {
             case "slti":
             case "sltiu": {
                 if (delim_line.length !== 3){
-                    show_error(`L${i+1}: ${ins} needs 3 values`)
+                    show_error(`L${rawi+1}: ${ins} needs 3 values`)
                     return 
                 } 
                 const rs = REG[delim_line[1]]
                 const rt = REG[delim_line[0]] 
                 const im = parseInt(delim_line[2]) 
                 if (rs === undefined || rt === undefined){
-                    show_error(`L${i+1}: invalid value(s) ${rs?'':'rs '}${rt?'':'rt'}`)
+                    show_error(`L${rawi+1}: invalid value(s) ${rs?'':'rs '}${rt?'':'rt'}`)
                     return 
                 }
                 if (isNaN(im) || im === undefined){
-                    show_error(`L${i+1}: invalid immediate value ${delim_line[2]}`)
+                    show_error(`L${rawi+1}: invalid immediate value ${delim_line[2]}`)
                     return
                 }
                 if ( im < -32768 || im > 32767) {  // 16 bit range
-                    show_error(`L${i+1}: immediate value is out of range ${delim_line[2]}`)
+                    show_error(`L${rawi+1}: immediate value is out of range ${delim_line[2]}`)
                     return
                 }
                 result = (info.opcode << 26) | (rs << 21) | (rt << 16) | (im & 0xFFFF);
@@ -380,13 +397,13 @@ function textarea_change() {
             }
             case "move":{
                 if (delim_line.length !== 2){
-                    show_error(`L${i+1}: ${ins} needs 2 values`)
+                    show_error(`L${rawi+1}: ${ins} needs 2 values`)
                     return 
                 } 
                 const rt = REG[delim_line[0]] 
                 const rs = REG[delim_line[1]]
                 if (rs === undefined || rt === undefined){
-                    show_error(`L${i+1}: invalid value(s) ${rs?'':'rs '}${rt?'':'rt'}`)
+                    show_error(`L${rawi+1}: invalid value(s) ${rs?'':'rs '}${rt?'':'rt'}`)
                     return 
                 }
                 result = (info.opcode << 26) | (rs << 21) | (rt << 16) | 0; // addi $rt, $rs, 0
@@ -394,21 +411,21 @@ function textarea_change() {
             }
             case "li":{
                 if (delim_line.length !== 2){
-                    show_error(`L${i+1}: ${ins} needs 2 values`)
+                    show_error(`L${rawi+1}: ${ins} needs 2 values`)
                     return 
                 } 
                 const rt = REG[delim_line[0]] 
                 const im = parseInt(delim_line[1]) 
                 if (rt === undefined){
-                    show_error(`L${i+1}: invalid value rt`)
+                    show_error(`L${rawi+1}: invalid value rt`)
                     return 
                 }
                 if (isNaN(im) || im === undefined){
-                    show_error(`L${i+1}: invalid immediate value ${delim_line[2]}`)
+                    show_error(`L${rawi+1}: invalid immediate value ${delim_line[2]}`)
                     return
                 }
                 if ( im < -32768 || im > 32767) {  // 16 bit range
-                    show_error(`L${i+1}: immediate value is out of range ${delim_line[2]}`)
+                    show_error(`L${rawi+1}: immediate value is out of range ${delim_line[2]}`)
                     return
                 }
                 result = (info.opcode << 26) | (REG.$0 << 21) | (rt << 16) | (im & 0xFFFF); // addi $rt, $0, IM
@@ -417,22 +434,22 @@ function textarea_change() {
             case "andi":
             case "ori": {
                 if (delim_line.length !== 3){
-                    show_error(`L${i+1}: ${ins} needs 3 values`)
+                    show_error(`L${rawi+1}: ${ins} needs 3 values`)
                     return 
                 } 
                 const rs = REG[delim_line[1]]
                 const rt = REG[delim_line[0]] 
                 const im = parseInt(delim_line[2]) 
                 if (rs === undefined || rt === undefined){
-                    show_error(`L${i+1}: invalid value(s) ${rs?'':'rs '}${rt?'':'rt'}`)
+                    show_error(`L${rawi+1}: invalid value(s) ${rs?'':'rs '}${rt?'':'rt'}`)
                     return 
                 }
                 if (isNaN(im) || im === undefined){
-                    show_error(`L${i+1}: invalid immediate value ${delim_line[2]}`)
+                    show_error(`L${rawi+1}: invalid immediate value ${delim_line[2]}`)
                     return
                 }
                 if ( im < 0 || im > 65535) {  // 16 bit range
-                    show_error(`L${i+1}: immediate value is out of range ${delim_line[2]}`)
+                    show_error(`L${rawi+1}: immediate value is out of range ${delim_line[2]}`)
                     return
                 }
                 result = (info.opcode << 26) | (rs << 21) | (rt << 16) | (im & 0xFFFF);
@@ -441,22 +458,22 @@ function textarea_change() {
             case "beq":
             case "bne": {
                 if (delim_line.length !== 3){
-                    show_error(`L${i+1}: ${ins} needs 3 values`)
+                    show_error(`L${rawi+1}: ${ins} needs 3 values`)
                     return 
                 } 
                 const rs = REG[delim_line[0]]
                 const rt = REG[delim_line[1]] 
                 const lbl = delim_line[2] 
-                const lbl_add = Labels[lbl]
+                const lbl_add = Labels[lbl] 
                 if (rs === undefined || rt === undefined){
-                    show_error(`L${i+1}: invalid value(s) ${rs?'':'rs '}${rt?'':'rt'}`)
+                    show_error(`L${rawi+1}: invalid value(s) ${rs?'':'rs '}${rt?'':'rt'}`)
                     return 
                 }
                 if (lbl_add === undefined) {
-                    show_error(`L${i+1}: ${lbl} no such label`)
+                    show_error(`L${rawi+1}: ${lbl} no such label`)
                     return 
                 }
-                let mvam = lbl_add - i - 1 // amount to move
+                let mvam = lbl_add - line_index - 1 // amount to move
                 mvam = mvam & 0xFFFF // mask to 16 bits
                 result = (info.opcode << 26) | (rs << 21) | (rt << 16) | mvam;
                 break;
@@ -464,13 +481,13 @@ function textarea_change() {
             case "j": 
             case "jal": {
                 if (delim_line.length !== 1){
-                    show_error(`L${i+1}: ${ins} needs a label value`)
+                    show_error(`L${rawi+1}: ${ins} needs a label value`)
                     return 
                 } 
                 const lbl = delim_line[0] 
                 let lbl_add = Labels[lbl] 
                 if (lbl_add === undefined) {
-                    show_error(`L${i+1}: ${lbl} no such label`)
+                    show_error(`L${rawi+1}: ${lbl} no such label`)
                     return 
                 }
                 lbl_add = (lbl_add + (PC >>> 2)) & 0x3FFFFFF  // mask to 26 bits
@@ -479,12 +496,12 @@ function textarea_change() {
             }
             case "jr": {
                 if (delim_line.length !== 1){
-                    show_error(`L${i+1}: ${ins} needs a single value`)
+                    show_error(`L${rawi+1}: ${ins} needs a single value`)
                     return 
                 } 
                 const rs = REG[delim_line[0]]
                 if (rs === undefined) {
-                    show_error(`L${i+1}: invalid register`)
+                    show_error(`L${rawi+1}: invalid register`)
                     return 
                 }
                 result = (info.opcode << 26) | (rs << 21) | info.funct;
@@ -493,12 +510,12 @@ function textarea_change() {
             case "mfhi": 
             case "mflo": {
                 if (delim_line.length !== 1){
-                    show_error(`L${i+1}: ${ins} needs a single value`)
+                    show_error(`L${rawi+1}: ${ins} needs a single value`)
                     return 
                 } 
                 const rd = REG[delim_line[0]]
                 if (rd === undefined) {
-                    show_error(`L${i+1}: invalid register`)
+                    show_error(`L${rawi+1}: invalid register`)
                     return 
                 }
                 result = (info.opcode << 26) | (rd << 11) | info.funct;
@@ -509,13 +526,13 @@ function textarea_change() {
             case "mult": 
             case "multu": {
                 if (delim_line.length !== 2){
-                    show_error(`L${i+1}: ${ins} needs 2 values`)
+                    show_error(`L${rawi+1}: ${ins} needs 2 values`)
                     return 
                 } 
                 const rs = REG[delim_line[0]]
                 const rt = REG[delim_line[1]]
                 if (rs === undefined || rt === undefined){
-                    show_error(`L${i+1}: invalid value(s) ${rs?'':'rs '}${rt?'':'rt'}`)
+                    show_error(`L${rawi+1}: invalid value(s) ${rs?'':'rs '}${rt?'':'rt'}`)
                     return 
                 }
                 result = (info.opcode << 26) | (rs << 21) | (rt << 16) | info.funct;
@@ -524,7 +541,7 @@ function textarea_change() {
             case "lw": 
             case "sw": {
                 if (delim_line.length !== 2){
-                    show_error(`L${i+1}: ${ins} needs 2 values`)
+                    show_error(`L${rawi+1}: ${ins} needs 2 values`)
                     return 
                 } 
                 const rt = REG[delim_line[0]]
@@ -533,15 +550,15 @@ function textarea_change() {
                 const im = parseInt(rs_imsplit[0]) 
                 const rs = REG[rs_imsplit[1]]
                 if (rs === undefined || rt === undefined){
-                    show_error(`L${i+1}: invalid value(s) ${rs?'':'rs '}${rt?'':'rt'}`)
+                    show_error(`L${rawi+1}: invalid value(s) ${rs?'':'rs '}${rt?'':'rt'}`)
                     return 
                 }
                 if (isNaN(im) || im === undefined){
-                    show_error(`L${i+1}: invalid immediate value ${rs_imsplit[0]}`)
+                    show_error(`L${rawi+1}: invalid immediate value ${rs_imsplit[0]}`)
                     return
                 }
                 if ( im < -32768 || im > 32767) {  // 16 bit range
-                    show_error(`L${i+1}: immediate value is out of range ${rs_imsplit[0]}`)
+                    show_error(`L${rawi+1}: immediate value is out of range ${rs_imsplit[0]}`)
                     return
                 }
                 result = (info.opcode << 26) | (rs << 21) | (rt << 16) | (im & 0xFFFF);
@@ -549,21 +566,21 @@ function textarea_change() {
             }
             case "lui": {
                 if (delim_line.length !== 2){
-                    show_error(`L${i+1}: ${ins} needs 2 values`)
+                    show_error(`L${rawi+1}: ${ins} needs 2 values`)
                     return 
                 } 
                 const rt = REG[delim_line[0]]
                 const im = parseInt(delim_line[1]) 
                 if (rt === undefined){
-                    show_error(`L${i+1}: invalid register`)
+                    show_error(`L${rawi+1}: invalid register`)
                     return 
                 }
                 if (isNaN(im) || im === undefined){
-                    show_error(`L${i+1}: invalid immediate value ${delim_line[1]}`)
+                    show_error(`L${rawi+1}: invalid immediate value ${delim_line[1]}`)
                     return
                 }
                 if ( im < 0 || im > 65535) {  // 16 bit range
-                    show_error(`L${i+1}: immediate value is out of range ${delim_line[1]}`)
+                    show_error(`L${rawi+1}: immediate value is out of range ${delim_line[1]}`)
                     return
                 }
                 result = (info.opcode << 26) | (rt << 16) | (im & 0xFFFF);
@@ -573,22 +590,22 @@ function textarea_change() {
             case "srl":
             case "sra": {
                 if (delim_line.length !== 3){
-                    show_error(`L${i+1}: ${ins} needs 3 values`)
+                    show_error(`L${rawi+1}: ${ins} needs 3 values`)
                     return 
                 } 
                 const rd = REG[delim_line[0]]
                 const rt = REG[delim_line[1]]
                 const sh = parseInt(delim_line[2]) // shamt
                 if (rd === undefined || rt === undefined){
-                    show_error(`L${i+1}: invalid value(s) ${rd?'':'rd '}${rt?'':'rt'}`)
+                    show_error(`L${rawi+1}: invalid value(s) ${rd?'':'rd '}${rt?'':'rt'}`)
                     return 
                 }
                 if (isNaN(sh) || sh === undefined){
-                    show_error(`L${i+1}: invalid shamt value ${delim_line[2]}`)
+                    show_error(`L${rawi+1}: invalid shamt value ${delim_line[2]}`)
                     return
                 }
                 if (sh > 0b11111 || sh < 0){
-                    show_error(`L${i+1}: shamt is out of range`)
+                    show_error(`L${rawi+1}: shamt is out of range`)
                     return 
                 }
                 result = (info.opcode << 26) | (rt << 16) | (rd << 11) | (sh << 6) | info.funct;
@@ -596,20 +613,20 @@ function textarea_change() {
             }
             case "nop":{
                 if (delim_line.length !== 1 || delim_line[0] !== ""){
-                    show_error(`L${i+1}: ${ins} needs 0 values`)
+                    show_error(`L${rawi+1}: ${ins} needs 0 values`)
                     return 
                 } 
                 result = (info.opcode << 26) | (REG.$0 << 16) | (REG.$0 << 11) | (0 << 6) | info.funct;
                 break;
             }
             default:{
-                show_error(`L${i+1}: ${ins} not implemented`)
+                show_error(`L${rawi+1}: ${ins} not implemented`)
                 return;
             }
         }
         result = result >>> 0; // get rid off sign!
-        Memory.write_word((i*4)+PC, result)
-        last_pc = (i*4)+PC;
+        Memory.write_word((line_index*4)+PC, result)
+        last_pc = (line_index*4)+PC;
         let binary_rep = result.toString(2).padStart(32,'0');
         function strbits2decimal(value){
             return parseInt(value,2).toString()
@@ -637,10 +654,11 @@ function textarea_change() {
                 break;
         }
         new_instructions += `<div class="ops">
-                                <div>0x${((i*4)+PC).toString(16).padStart(8,'0')}</div>
+                                <div>0x${((line_index*4)+PC).toString(16).padStart(8,'0')}</div>
                                 <div>0x${result.toString(16).padStart(8,'0')}</div>
                                 <div>${binary_rep}</div>
                             </div>`;
+        line_index++;
     }
     
    
@@ -662,7 +680,20 @@ function parse_sigint(binaryString, bitSize) {
 
 let program_finished = false;
 function PC2LN() {
-    return ((PC % 0x00400000) / 4) + 1 
+    const text_area =  document.getElementById("text-area")
+    const input = parse_inner_html(text_area.childNodes).newValue
+    let lines = input.split('\n').map(x=> x.replace(/#.+/,'')).map(x=> x.replace(/.+:/,'')).map(x=> x.trim());
+    let code_index = ((PC % 0x00400000) / 4) + 1; 
+    let visual_index = 0;
+    for (let line of lines){
+        if (code_index <= 0)
+            break;
+        visual_index++;
+        if (line === "")
+            continue;
+        code_index--;
+    }
+    return visual_index
 }
 
 function run_interpreter(times) {
@@ -848,3 +879,38 @@ function run_code(lPC){
         console.error("Bad opcode!") // TODO: add more info
     }
 }
+
+function parse_inner_html(childNodes, newValue ='' ,isOnFreshLine=true) {
+    for (let i = 0; i < childNodes.length; i++) {
+        const childNode = childNodes[i];
+
+        if (childNode.nodeName === 'BR') {
+        // BRs are always line breaks which means the next loop is on a fresh line
+            newValue += '\n';
+            isOnFreshLine = true;
+            continue;
+        }
+
+        // We may or may not need to create a new line
+        if (childNode.nodeName === 'DIV' && isOnFreshLine === false) {
+        // Divs create new lines for themselves if they aren't already on one
+            newValue += '\n';
+        }
+
+        // Whether we created a new line or not, we'll use it for this content so the next loop will not be on a fresh line:
+        isOnFreshLine = false;
+
+        // Add the text content if this is a text node:
+        if (childNode.nodeType === 3 && childNode.textContent) {
+            newValue += childNode.textContent;
+        }
+
+        // If this node has children, get into them as well:
+        const rec = parse_inner_html(childNode.childNodes, newValue, isOnFreshLine)
+        newValue = rec.newValue;
+        isOnFreshLine = rec.isOnFreshLine;
+    }
+  return {newValue:newValue, isOnFreshLine:isOnFreshLine}
+}
+
+
