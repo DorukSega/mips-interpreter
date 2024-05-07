@@ -171,7 +171,22 @@ body {
     flex: 1;
     text-align: center;
 }
+
+#d4194304{
+    background-color: #ffd04f;
+    color: #000;
+}
+
+#d1879044092{
+    background-color: #524fff;
+    color: #fff;
+}
+
 #line-nums > .cur{
     background-color: #ff4f58;
     color: #fff;
+}
+
+#fromlines{
+    text-align: center;
 }

@@ -156,11 +156,12 @@ class MIPS_Memory {
     /**
      * Read a word (4 bytes) from memory.
      * @param {number} address - The memory address to read from.
-     * @returns {number} The word read from memory.
+     * @returns {number | undefined} The word read from memory.
      */
     read_word(address) {
         if (address < 0 || address > (max_memory-3)) {
             console.error("Address out of bounds");
+            return undefined
         }
         let word = 0;
         for (let i = 0; i < 4; i++) {
@@ -184,7 +185,6 @@ class MIPS_Memory {
     }
 }
 
- 
 const PC_START = 0x00400000;
 const SP_START = 0x6fffeffc;
 const GP_START = 0x10008000;
@@ -196,11 +196,8 @@ let LO = 0;
 Registers[REG.$sp] = SP_START;
 Registers[REG.$gp] = GP_START;
 
-
 let is_error = false;
 let last_pc = 0;
-
-
 
 
 window.onload = function () {
@@ -208,6 +205,7 @@ window.onload = function () {
     document.getElementById("bstep").onclick = bstep_click
     document.getElementById("ball").onclick = ball_click
     document.getElementById("text-area").oninput = textarea_change 
+    document.getElementById('fromlines').oninput = load_data_memory
     write_linenums() 
     load_registers()
 }
@@ -256,12 +254,23 @@ function load_registers(){
     PC_el.children[1].textContent = "0x"+ PC.toString(16).padStart(8,'0')
     HI_el.children[1].textContent = HI
     LO_el.children[1].textContent = LO
+    load_data_memory()
+}
+
+function load_data_memory(){
     const data_mem = document.getElementById("data-mem")
     data_mem.innerHTML = "<div class='head'><div>Address</div><div>Hex</div></div>";
-    for(let i = 0x10010000; i < 0x10010100; i+=4){
-        data_mem.innerHTML += `<div class='ops'><div>0x${i.toString(16).padStart(8,'0')}</div><div>0x${Memory.read_word(i).toString(16).padStart(8,'0')}</div></div>`
+    let start = parseInt(document.getElementById('fromlines').value);
+    if (isNaN(start))
+        start = 0x10010000;
+    for(let i = start; i < start + (100*4); i+=4){
+        let word = Memory.read_word(i)
+        if (word === undefined)
+            continue;
+        data_mem.innerHTML += `<div class='ops'><div id='d${i}'>0x${i.toString(16).padStart(8,'0')}</div><div>0x${word.toString(16).padStart(8,'0')}</div></div>`
     }
 }
+
 
 function show_error(err) {
     const el = document.getElementById("error")
@@ -287,7 +296,6 @@ function write_linenums() {
     for (let i = 1; i <= 30; i++)
         line_nums.innerHTML += `<div id='ln${i}'>${i}</div>`;
 }
-
 
 
 function textarea_change() {
