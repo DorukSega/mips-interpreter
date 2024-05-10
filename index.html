@@ -49,9 +49,12 @@
                 </div>
             </div>
             <div class="inspace">
-                <div class="sect-label">
+                <div class="display-label">
                     <div>Data Memory</div>
-                    <input id="fromlines" type="text" value="0x10010000">
+                    <label for="fromlines" class="fromlines">Start Address</label> 
+                    <input name="fromlines" id="fromlines" maxlength="10" type="text" value="0x10010000">
+                    <label for="fromlines" class="fromlines">Amount to Display [address + 4*n]</label> 
+                    <input name="fromlines" id="tolines" maxlength="4" type="text" value="100">
                 </div>
                 <div id="data-mem">
                     <div class='head'><div>Address</div><div>Hex</div></div>

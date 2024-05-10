@@ -187,6 +187,21 @@ body {
     color: #fff;
 }
 
-#fromlines{
+#fromlines,
+#tolines{
     text-align: center;
+    width: fit-content;
+}
+
+.fromlines{
+    font-size: 14px;
+}
+
+.display-label{
+    font-size: 24px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
 }

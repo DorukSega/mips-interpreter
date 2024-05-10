@@ -201,11 +201,12 @@ let last_pc = 0;
 
 
 window.onload = function () {
-    document.getElementById("breset").onclick = breset_click
-    document.getElementById("bstep").onclick = bstep_click
-    document.getElementById("ball").onclick = ball_click
+    document.getElementById("breset").onclick    = breset_click
+    document.getElementById("bstep").onclick     = bstep_click
+    document.getElementById("ball").onclick      = ball_click
     document.getElementById("text-area").oninput = textarea_change 
     document.getElementById('fromlines').oninput = load_data_memory
+    document.getElementById('tolines').oninput   = load_data_memory
     write_linenums() 
     load_registers()
 }
@@ -260,10 +261,30 @@ function load_registers(){
 function load_data_memory(){
     const data_mem = document.getElementById("data-mem")
     data_mem.innerHTML = "<div class='head'><div>Address</div><div>Hex</div></div>";
-    let start = parseInt(document.getElementById('fromlines').value);
-    if (isNaN(start))
+    const fromlines = document.getElementById('fromlines')
+    const tolines = document.getElementById('tolines')
+    let start = parseInt(fromlines.value);
+    let upto = parseInt(tolines.value)
+    if (isNaN(start)){
         start = 0x10010000;
-    for(let i = start; i < start + (100*4); i+=4){
+        fromlines.value = `0x${0x10010000.toString(16)}`;
+    }
+    if (isNaN(upto) && tolines.value !== ""){
+        upto = 100;
+        tolines.value = 100;
+    }
+    if (tolines.value === "")
+        upto = 100;
+    if (upto <0) {
+        for(let i = start; i > start + (upto*4); i-=4){
+            let word = Memory.read_word(i)
+            if (word === undefined)
+                continue;
+            data_mem.innerHTML += `<div class='ops'><div id='d${i}'>0x${i.toString(16).padStart(8,'0')}</div><div>0x${word.toString(16).padStart(8,'0')}</div></div>`
+        }
+        return
+    }
+    for(let i = start; i < start + (upto*4); i+=4){
         let word = Memory.read_word(i)
         if (word === undefined)
             continue;
@@ -276,8 +297,8 @@ function show_error(err) {
     const el = document.getElementById("error")
     const bstep = document.getElementById("bstep")
     const ball = document.getElementById("ball")
-    if (err === undefined) {
-        el.textContent = "No Errors"
+    if (err === "No Errors" || err === "Program Finished") {
+        el.textContent = err
         el.classList.remove("ered")
         is_error = false
         bstep.disabled = false
@@ -293,7 +314,7 @@ function show_error(err) {
 
 function write_linenums() {
     const line_nums = document.getElementById("line-nums")
-    for (let i = 1; i <= 30; i++)
+    for (let i = 1; i <= 50; i++)
         line_nums.innerHTML += `<div id='ln${i}'>${i}</div>`;
 }
 
@@ -303,7 +324,7 @@ function textarea_change() {
     const input = parse_inner_html(text_area.childNodes).newValue
     const instruction_mem = document.getElementById("instruction-mem")
     let new_instructions = "<div class='head'><div>Address</div><div>Hex</div><div>Decimal</div></div>";
-    show_error()
+    show_error("No Errors")
     if (input === ""){
         instruction_mem.innerHTML = new_instructions;
         return
@@ -709,7 +730,7 @@ function run_interpreter(times) {
     program_finished = false
     for (let i = 0; i < times; i++) {
         if (PC > last_pc){
-            console.log("Program finished")
+            show_error("Program Finished")
             bstep.disabled = true
             ball.disabled = true
             program_finished = true
